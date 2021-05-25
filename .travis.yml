@@ -1,0 +1,15 @@
+os:   linux
+dist: bionic
+
+git:
+  submodules: false
+
+install:
+  - sudo apt install ninja-build
+  
+script:
+  - git submodule update --init
+  - ./scripts/patch.sh
+  - cd qemu 
+  - ./configure --target-list=riscv64-softmmu,riscv32-softmmu --extra-flags=-lrt
+  - make -j  

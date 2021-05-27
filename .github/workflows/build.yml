@@ -78,3 +78,16 @@ jobs:
           cd qemu
           ./configure --cross-prefix=x86_64-w64-mingw32- --target-list=riscv64-softmmu,riscv32-softmmu
           make -j
+
+  Release:
+    if: github.event_name != 'pull_request'
+    needs: [linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+      - uses: eine/tip@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: 'nightly'
+          files: artifact/*

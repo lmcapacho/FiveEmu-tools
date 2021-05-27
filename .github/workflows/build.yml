@@ -2,22 +2,20 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+
+  linux:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          submodules: false
+          repository: lmcapacho/five-qemu
+
       - name: Fetch
         run: git submodule update --init
       - name: Patch
         run: ./scripts/patch.sh
       - name: Install dependencies
-        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
           sudo apt install ninja-build
@@ -25,4 +23,48 @@ jobs:
         run: |
           cd qemu
           ./configure --target-list=riscv64-softmmu,riscv32-softmmu --extra-ldflags=-lrt
+          make -j
+
+  win:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >
+            base-devel
+            git
+            python
+            ninja
+            python-setuptools
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-glib2
+            mingw64/mingw-w64-x86_64-gtk3
+            mingw64/mingw-w64-x86_64-SDL2
+      - name: Setup executables
+        run: |
+          cd $MINGW_PREFIX/bin
+          cp x86_64-w64-mingw32-gcc-ar.exe x86_64-w64-mingw32-ar.exe
+          cp x86_64-w64-mingw32-gcc-ranlib.exe x86_64-w64-mingw32-ranlib.exe
+          cp windres.exe x86_64-w64-mingw32-windres.exe
+          cp nm.exe x86_64-w64-mingw32-nm.exe
+          cp objcopy.exe x86_64-w64-mingw32-objcopy.exe
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          repository: lmcapacho/five-qemu
+
+      - name: Fetch
+        run: git submodule update --init
+      - name: Patch
+        run: ./scripts/patch.sh
+      - name: Compile
+        run: |
+          cd qemu
+          ./configure --cross-prefix=x86_64-w64-mingw32- --target-list=riscv64-softmmu,riscv32-softmmu
           make -j

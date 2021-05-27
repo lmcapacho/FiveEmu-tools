@@ -4,13 +4,17 @@ on: [push, pull_request]
 jobs:
 
   linux:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          repository: lmcapacho/five-qemu
-
+          submodules: false
       - name: Fetch
         run: git submodule update --init
       - name: Patch
@@ -24,6 +28,12 @@ jobs:
           cd qemu
           ./configure --target-list=riscv64-softmmu,riscv32-softmmu --extra-ldflags=-lrt
           make -j
+      - name: Tar Files
+        run: tar -czvf five-qemu-${{ matirx.os }}.tar.gz -C qemu/build/ qemu-system-riscv32 qemu-system-riscv64
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          path: five-qemu-*.tar.gz
 
   win:
     runs-on: windows-latest

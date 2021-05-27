@@ -21,20 +21,20 @@
 
 #ifdef __linux__
 #include <sys/socket.h>
-#include <arpa/inet.h>        
+#include <arpa/inet.h>
 #endif /* !__linux__ */
 
 #define BUFSIZE         2048
 #define SERVICE_PORT	21234
 
 static int recvSharedMemoryID(char *ID){
-    
+
 #ifdef _WIN32
     WSADATA wsa;
-    
+
     if (WSAStartup(MAKEWORD(2,2),&wsa) != 0) {
         return 0;
-    }    
+    }
 #endif /* !_WIN32 */
 
     int sockfd, portno, recvlen;
@@ -57,8 +57,8 @@ static int recvSharedMemoryID(char *ID){
     bzero((char *) &serv_addr, sizeof(serv_addr));
 #endif /* !__linux__ */
     serv_addr.sin_family = AF_INET;
-    bcopy((char *)server->h_addr,
-         (char *)&serv_addr.sin_addr.s_addr,
+    memcpy((char *)&serv_addr.sin_addr.s_addr,
+         (char *)server->h_addr,
          server->h_length);
     serv_addr.sin_port = htons(portno);
     if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) {
@@ -66,9 +66,9 @@ static int recvSharedMemoryID(char *ID){
     }
 
     recvlen = recv(sockfd,ID,BUFSIZE,0);
-    
+
     close(sockfd);
-    
+
     return recvlen;
 }
 
@@ -124,7 +124,7 @@ static void update_state(SIFIVEGPIOState *s)
         } else if (output_en) {
             /* The pin is driven by internal circuit */
             actual_value = oval;
-            
+
             /*Shares value to external process*/
             if(s->is_shared) {
                 qemu_mutex_lock(&s->dat_lock);
@@ -442,12 +442,12 @@ static void * remote_gpio_thread(void * arg)
         sifive_gpio_update_from_sharedm(s);
     #ifdef _WIN32
         Sleep(10);
-    #else 
+    #else
         usleep(10000);
     #endif /* !_WIN32 */
     }
 
-    return 0; 
+    return 0;
 
 }
 
@@ -475,7 +475,7 @@ static void sifive_gpio_realize(DeviceState *dev, Error **errp)
 
     qdev_init_gpio_in(DEVICE(s), sifive_gpio_set, s->ngpio);
     qdev_init_gpio_out(DEVICE(s), s->output, s->ngpio);
-    
+
     recvlen=recvSharedMemoryID(buf);
     if(recvlen>0) {
         buf[recvlen]=0;
@@ -487,19 +487,19 @@ static void sifive_gpio_realize(DeviceState *dev, Error **errp)
                     FALSE,                 // do not inherit the name
                     buf);
 
-        if(s->hMapFile==NULL) {    
+        if(s->hMapFile==NULL) {
     #else
         s->fd = shm_open(buf,  O_RDWR, S_IRUSR | S_IWUSR);
-        
+
         if(s->fd == 0) {
     #endif /* !_WIN32 */
-        
+
             s->is_shared=false;
         }
         else {
             /* Maps shared memory object */
         #ifdef _WIN32
-            s->rptr = (uint32_t*) MapViewOfFile(s->hMapFile,   // handle to map object
+            s->rptr = (uint64_t*) MapViewOfFile(s->hMapFile,   // handle to map object
                         FILE_MAP_ALL_ACCESS, // read/write permission
                         0,
                         0,
@@ -513,7 +513,7 @@ static void sifive_gpio_realize(DeviceState *dev, Error **errp)
             }
             else {
                 qemu_mutex_init(&s->dat_lock);
-                qemu_thread_create(&s->thread, "remote_gpio", remote_gpio_thread, 
+                qemu_thread_create(&s->thread, "remote_gpio", remote_gpio_thread,
                                     s, QEMU_THREAD_JOINABLE);
             }
         }

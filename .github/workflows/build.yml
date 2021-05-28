@@ -6,7 +6,6 @@ jobs:
   linux:
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
         os: [ubuntu-18.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
@@ -78,6 +77,36 @@ jobs:
           cd qemu
           ./configure --cross-prefix=x86_64-w64-mingw32- --target-list=riscv64-softmmu,riscv32-softmmu
           make -j
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-10.15, macos-11]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Install dependencies
+        run: |
+          brew install pkg-config python gnu-sed glib pixman make sdl2 bash ninja
+      - name: Fetch
+        run: git submodule update --init
+      - name: Patch
+        run: ./scripts/patch.sh
+      - name: Compile
+        run: |
+          cd qemu
+          ./configure --target-list=riscv64-softmmu,riscv32-softmmu
+          gmake -j
+      - name: Tar Files
+        run: tar -czvf five-qemu-${{ matrix.os }}.tar.gz -C qemu/build/ qemu-system-riscv32 qemu-system-riscv64
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          path: five-qemu-*.tar.gz
 
   Release:
     if: github.event_name != 'pull_request'

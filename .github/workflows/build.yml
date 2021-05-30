@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15, macos-11]
+        os: [macos-10.15, macos-11.0]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -110,7 +110,7 @@ jobs:
 
   Release:
     if: github.event_name != 'pull_request'
-    needs: [linux]
+    needs: [linux, macos]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifact

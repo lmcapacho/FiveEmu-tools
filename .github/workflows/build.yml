@@ -48,6 +48,7 @@ jobs:
           install: >
             base-devel
             git
+            zip
             python
             ninja
             python-setuptools

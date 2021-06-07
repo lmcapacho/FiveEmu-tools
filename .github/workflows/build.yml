@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 on: [push, pull_request]
 
 jobs:
@@ -79,7 +79,7 @@ jobs:
           ./configure --cross-prefix=x86_64-w64-mingw32- --target-list=riscv64-softmmu,riscv32-softmmu
           make -j
       - name: Zip Files
-        run: zip -j five-qemu-${{ matrix.os }}.zip qemu/build/qemu-system-riscv32.exe qemu/build/qemu-system-riscv64.exe
+        run: zip -j five-qemu-windows.zip qemu/build/qemu-system-riscv32.exe qemu/build/qemu-system-riscv64.exe
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v2
         with:
